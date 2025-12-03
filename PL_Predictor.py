@@ -152,9 +152,103 @@ def summarize_season(matches: pd.DataFrame):
         return summary
     
 # Start preparing the data for traning the machine learning model on.
-def prepare_training_data(season_files: List[str]): # Function expects a list of strings
+def prepare_training_data(season_files): # Function expects a list of strings
+    """Prepare training features and labels from a list of seasons.
+
+    Given a list of file paths ordered chronologically, compute per-team
+    statistics for each season and build a dataset where the feature
+    vector for season `n+1` comes from the statistics of season `n`.
+    Teams promoted into the Premier League without previous season
+    statistics are assigned default feature values equal to the
+    average of the bottom three clubs in the prior season.
+
+    Parameters
+    ----------
+    season_files : list of str
+        Paths to season CSV files ordered from oldest to newest.
+
+    Returns
+    -------
+    X_train : DataFrame
+        Feature matrix (numeric) for training.
+    y_train : Series
+        Target series containing league positions (1-20).
+    latest_features : DataFrame
+        Feature matrix for the most recent season in the list (used
+        for prediction).
+    """
     
-    return
+    season_summaries = {} # Create an empty dictionary to store all the season statistics
+    
+    # compute summary stats for each season
+    for file_path in season_files:
+        raw = pd.read_csv(file_path)
+        parsed = parse_match_results(raw)
+        summary = summarize_season(parsed)                                                      # Bascially use the previous helper functions to calculate stats
+        season_summaries[file_path] = summary                                                   # Store this season's stats in the dictionary (keyed to the file-name)
+        
+    # Build training dataset: use season n's stats to predict season n+1's position
+    feature_rows = []
+    target_rows = []
+    files_sorted = season_files
+    
+    for i in range(len(files_sorted) - 1):                                                      # Loops through all seasons except the last since there won't be a 'next' season
+        prev_summary = season_summaries[files_sorted[i]].copy().set_index("team")               # Prev season summary set to last season from the dictionary created before
+        curr_summary = season_summaries[files_sorted[i + 1]].copy().set_index("team")           # Current season same thing
+        
+        # compute default features based on bottom three teams from previous season
+        bottom_three = prev_summary.sort_values(
+            ["points", "goal_diff", "goals_for"], ascending=[True, True, True]                  # Sort prev season stats from worst to best to find bottom 3
+        ).head(3)
+        default_features = bottom_three.mean().to_dict()                                        # Compute averages of points, goals, etc., for those bottom three teams.
+        
+        for team, row in curr_summary.iterrows():
+            if team in prev_summary.index:                                                      # If current team was in prev season, extract their stats and put in dict!                    
+                feats = prev_summary.loc[team][
+                    ["points", "wins", "draws", "losses", "goals_for", "goals_against", "goal_diff"]
+                ].to_dict()
+            else:                                                                               # promoted team – assign default bottom three stats
+                feats = {k: default_features[k] for k in [
+                    "points", "wins", "draws", "losses", "goals_for", "goals_against", "goal_diff"
+                ]}
+            feature_rows.append(feats)                                                          # Store features for season n
+            target_rows.append(row["position"])                                                 # Get actual position for season n+1
+            
+        
+    X_train = pd.DataFrame(feature_rows)
+    y_train = pd.Series(target_rows)
+    
+    # features for the most recent season for which we will predict the next season
+    last_summary = season_summaries[files_sorted[-1]].copy().set_index("team")
+    
+    # compute default features for new promoted teams in the upcoming season
+    # this uses bottom three of last_summary
+    bottom_three_last = last_summary.sort_values(
+        ["points", "goal_diff", "goals_for"], ascending=[True, True, True]
+    ).head(3)
+    default_features_last = bottom_three_last.mean().to_dict()
+    latest_features_rows = []
+    latest_teams = last_summary.index.tolist()
+
+    # incorporate promoted teams for 2025/26 (Leeds United, Burnley, Sunderland)
+    promoted = ["Leeds United", "Burnley", "Sunderland"]
+    # if a promoted team already exists in last_summary (e.g. Burnley was relegated earlier), use its stats
+    for team in latest_teams:
+        feats = last_summary.loc[team][
+            ["points", "wins", "draws", "losses", "goals_for", "goals_against", "goal_diff"]
+        ].to_dict()
+        latest_features_rows.append((team, feats))
+    for team in promoted:
+        if team not in latest_teams:
+            feats = {k: default_features_last[k] for k in [
+                "points", "wins", "draws", "losses", "goals_for", "goals_against", "goal_diff"
+            ]}
+            latest_features_rows.append((team, feats))
+    latest_features_df = pd.DataFrame([feats for _, feats in latest_features_rows],
+                                      index=[t for t, _ in latest_features_rows])
+    return X_train, y_train, latest_features_df
+
+
 
 # Sample data to test
 data = {
