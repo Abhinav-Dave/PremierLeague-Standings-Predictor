@@ -89,67 +89,67 @@ def summarize_season(matches: pd.DataFrame):
             teams[home_team]["draws"] += 1
             teams[away_team]["draws"] += 1
             
-        # CONVERT DICTIONARY TO DATAFRAME
-        summary_data = []
-        '''
-        When the season has been summarized, it diaplays it in a dictionary like so:
-        
-        teams = {
-            "TeamA": {"goals_for": 13, "goals_against": 5},
-            "TeamB": {"goals_for": 8, "goals_against": 6}
-        }
-        
-        We need to seperate this into like key-value pairs like [(teamA, stats), (TeamB, stats)]. To do this, you use the .items() function. It will return it like so:
-        [("TeamA", {"goals_for": 13, "goals_against": 5}), ("TeamB", {"goals_for": 8, "goals_against": 6})]
-        
-        Now, you just assign those key-value pairs variable names with the use of a for loop. You can then access specific data by doing stats['goals_for'], etc.
-        '''
-        for team, stats in teams.items():
-            goal_diff = stats["goals_for"] - stats["goals_against"] # Calculate goal difference
-            summary_data.append({
-                "team": team,
-                "points": stats["points"],
-                "wins": stats["wins"],
-                "draws": stats["draws"],
-                "losses": stats["losses"],
-                "goals_for": stats["goals_for"],
-                "goals_against": stats["goals_against"],
-                "goal_diff": goal_diff
-            })
-        
-        summary = pd.DataFrame(summary_data)
-        
-        
-        # Sort the teams based on stats (points first priority, goal_diff next, etc.). Make it descending order (hence all ascending = False).
-        summary = summary.sort_values(by=["points", "goal_diff", "goals_for"], ascending=[False, False, False])  
-        
-        # Reset the indexes of the sorted values/teams
-        summary = summary.reset_index(drop=True) # Drop the previous indexes (discard)
-        '''
-        This is IMPORTANT! Imagine:
-        
-        summary:
-        | index | team   | points | goal_diff | goals_for |
-        |-------|--------|--------|-----------|-----------|
-        | 0     | TeamA  | 10     | 5         | 12        |
-        | 1     | TeamB  | 12     | 3         | 8         |
-        | 2     | TeamC  | 10     | 6         | 10        |
-        
-        After we sort it, it would look like:
-        
-        | index | team   | points | goal_diff | goals_for |
-        |-------|--------|--------|-----------|-----------|
-        | 1     | TeamB  | 12     | 3         | 8         |
-        | 2     | TeamC  | 10     | 6         | 10        |
-        | 0     | TeamA  | 10     | 5         | 12        |
-        
-        It KEEPS the original indexes, BUT we dont want it like that. We want it such that after sorting, the indexes rest to 0, 1, 2 depending on order of teams.
-        Hence, we used .reset_index(drop=True). This DROPS the original indexes and replaces with new.
-        '''
-        
-        summary["position"] = summary.index + 1 # Instead of showing up as 0, 1, 2.... it adds 1 so teams are ranked nicely. Ex. 1 - Arsenal, 2 - Liverpool, etc.
-        
-        return summary
+    # CONVERT DICTIONARY TO DATAFRAME
+    summary_data = []
+    '''
+    When the season has been summarized, it diaplays it in a dictionary like so:
+    
+    teams = {
+        "TeamA": {"goals_for": 13, "goals_against": 5},
+        "TeamB": {"goals_for": 8, "goals_against": 6}
+    }
+    
+    We need to seperate this into like key-value pairs like [(teamA, stats), (TeamB, stats)]. To do this, you use the .items() function. It will return it like so:
+    [("TeamA", {"goals_for": 13, "goals_against": 5}), ("TeamB", {"goals_for": 8, "goals_against": 6})]
+    
+    Now, you just assign those key-value pairs variable names with the use of a for loop. You can then access specific data by doing stats['goals_for'], etc.
+    '''
+    for team, stats in teams.items():
+        goal_diff = stats["goals_for"] - stats["goals_against"] # Calculate goal difference
+        summary_data.append({
+            "team": team,
+            "points": stats["points"],
+            "wins": stats["wins"],
+            "draws": stats["draws"],
+            "losses": stats["losses"],
+            "goals_for": stats["goals_for"],
+            "goals_against": stats["goals_against"],
+            "goal_diff": goal_diff
+        })
+    
+    summary = pd.DataFrame(summary_data)
+    
+    
+    # Sort the teams based on stats (points first priority, goal_diff next, etc.). Make it descending order (hence all ascending = False).
+    summary = summary.sort_values(by=["points", "goal_diff", "goals_for"], ascending=[False, False, False])  
+    
+    # Reset the indexes of the sorted values/teams
+    summary = summary.reset_index(drop=True) # Drop the previous indexes (discard)
+    '''
+    This is IMPORTANT! Imagine:
+    
+    summary:
+    | index | team   | points | goal_diff | goals_for |
+    |-------|--------|--------|-----------|-----------|
+    | 0     | TeamA  | 10     | 5         | 12        |
+    | 1     | TeamB  | 12     | 3         | 8         |
+    | 2     | TeamC  | 10     | 6         | 10        |
+    
+    After we sort it, it would look like:
+    
+    | index | team   | points | goal_diff | goals_for |
+    |-------|--------|--------|-----------|-----------|
+    | 1     | TeamB  | 12     | 3         | 8         |
+    | 2     | TeamC  | 10     | 6         | 10        |
+    | 0     | TeamA  | 10     | 5         | 12        |
+    
+    It KEEPS the original indexes, BUT we dont want it like that. We want it such that after sorting, the indexes rest to 0, 1, 2 depending on order of teams.
+    Hence, we used .reset_index(drop=True). This DROPS the original indexes and replaces with new.
+    '''
+    
+    summary["position"] = summary.index + 1 # Instead of showing up as 0, 1, 2.... it adds 1 so teams are ranked nicely. Ex. 1 - Arsenal, 2 - Liverpool, etc.
+    
+    return summary
     
 # Start preparing the data for traning the machine learning model on.
 def prepare_training_data(season_files): # Function expects a list of strings
@@ -248,18 +248,96 @@ def prepare_training_data(season_files): # Function expects a list of strings
                                       index=[t for t, _ in latest_features_rows])
     return X_train, y_train, latest_features_df
 
+def build_and_train_model(X: pd.DataFrame, y: pd.Series) -> Pipeline:
+    """Create a pipeline that scales features and trains a RandomForest.
+
+    Parameters
+    ----------
+    X : DataFrame
+        Training features.
+    y : Series
+        Target positions (1–20).
+
+    Returns
+    -------
+    Pipeline
+        Scikit‑learn pipeline with StandardScaler and RandomForestClassifier.
+    """
+    model = Pipeline([
+        ("scaler", StandardScaler()),
+        ("rf", RandomForestClassifier(
+            n_estimators=500,                       # 500 trees - stable prediction
+            max_depth=8,
+            random_state=42,                        # Sets a fixed random seed so results are reproducible.
+            class_weight="balanced"                 # If some league positions occur more often than others in training, adjust weights so underrepresented classes matter more.
+        ))
+    ])
+    model.fit(X, y)
+    return model
+
+def predict_league_table(model: Pipeline, features: pd.DataFrame) -> pd.DataFrame:
+    """Predict the league table ordering for the given features.
+
+    Parameters
+    ----------
+    model : Pipeline
+        Trained scikit‑learn pipeline.
+    features : DataFrame
+        Feature rows indexed by team name.
+
+    Returns
+    -------
+    DataFrame
+        Predicted positions sorted from 1 to 20.
+    """
+    # use predicted probabilities to compute an expected finishing
+    # position.  RandomForestClassifier returns a probability
+    # distribution over the 20 possible finishing positions.  By
+    # multiplying each probability by its corresponding rank (1,2,3,etc.), we obtain an expected (fractional) finishing position.
+    
+    probas = model.predict_proba(features)                              # for each team, a probability distribution over all 20 possible finishing positions.
+    classes = model.named_steps["rf"].classes_                          # Retrieves the actual class labels learned by the Random Forest.
+    exp_positions = probas.dot(classes)                                 # Caluclate expected position
+    prediction_df = pd.DataFrame({
+        "team": features.index,
+        "expected_position": exp_positions
+    })
+    
+    # sort teams by lowest expected position (i.e. best finish)
+    prediction_df = prediction_df.sort_values("expected_position").reset_index(drop=True)
+    # assign integer ranks 1..n based on sorted order
+    prediction_df["predicted_rank"] = prediction_df.index + 1
+    return prediction_df[["predicted_rank", "team", "expected_position"]]
 
 
-# Sample data to test
-data = {
-    "Date": ["Fri Aug 11 2023", "Sat Aug 12 2023", "Sat Aug 12 2023"],
-    "Team 1": ["Burnley", "Arsenal", "Bournemouth"],
-    "FT": ["0-3", "2-1", "1-1"],
-    "HT": ["0-2", "2-0", "0-0"],
-    "Team 2": ["Man City", "Nott'm Forest", "West Ham"]
-}
+def main():
+    # define the season files in chronological order
+    season_files = [
+        os.path.join(os.path.dirname(__file__), "eng1_2018-19.csv"),
+        os.path.join(os.path.dirname(__file__), "eng1_2019-20.csv"),
+        os.path.join(os.path.dirname(__file__), "eng1_2020-21.csv"),
+        os.path.join(os.path.dirname(__file__), "eng1_2021-22.csv"),
+        os.path.join(os.path.dirname(__file__), "eng1_2022-23.csv"),
+        os.path.join(os.path.dirname(__file__), "eng1_2023-24.csv"),
+    ]
+    # prepare training data
+    X_train, y_train, latest_features = prepare_training_data(season_files)
+    # train model
+    model = build_and_train_model(X_train, y_train)
+    # predict ranking for 2025/26
+    predictions = predict_league_table(model, latest_features)
+    # keep only the top 20 teams based on expected position.  In reality
+    # the Premier League contains exactly 20 clubs.  Since we may
+    # include extra promoted teams due to unavailable data for the
+    # intermediate 2024/25 season, truncate to 20.
+    predictions = predictions.iloc[:20].copy()
+    print("Predicted Premier League 2025/26 table (1 = champion):")
+    for _, row in predictions.iterrows():
+        print(
+            f"{int(row['predicted_rank'])}. {row['team']} "
+            f"(expected pos {row['expected_position']:.2f})"
+        )
 
-# Create a DataFrame
-df = pd.DataFrame(data)
 
-print(parse_match_results(df))
+if __name__ == "__main__":
+    main()
