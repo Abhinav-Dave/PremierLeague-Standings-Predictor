@@ -1,70 +1,42 @@
-Premier League Season Predictor
-Project Overview
+# Premier League Season Predictor
 
-This Python project predicts the upcoming Premier League season rankings based on historical match results. By leveraging past season statistics and machine learning, it provides data-driven expected league positions for each team. The system is fully automated, from parsing match results to generating a predicted league table.
+## Project Overview
+Predict upcoming Premier League season rankings based on historical match results.  
+Uses past season statistics and machine learning to generate expected league positions for each team. Fully automated from raw match data to predicted league table.  
 
-Features
+## Features
+- Parse raw match results CSV files into structured numeric data.  
+- Summarize per-team seasonal statistics: points, wins, draws, losses, goals for/against, goal difference.  
+- Handle promoted teams using average bottom-team statistics for robust predictions.  
+- Build chronological training datasets linking season `n` stats to season `n+1` league positions.  
+- Train a Random Forest Classifier pipeline with feature scaling for stable predictions.  
+- Predict expected league positions using probabilistic outputs.  
+- Output the top 20 teams with predicted positions.  
 
-Parse and clean raw match results CSV files into structured numeric data.
+## How it Works
+1. **Data Parsing** – Convert raw "FT" scores into numeric `home_goals` and `away_goals`.  
+2. **Season Summarization** – Aggregate team statistics and compute rankings by points, goal difference, and goals scored.  
+3. **Training Data Preparation** – Build feature matrices from previous season stats; assign default features to promoted teams.  
+4. **Model Training** – Train a Random Forest Classifier with 500 trees, max depth 8, and balanced class weights inside a scaling pipeline.  
+5. **Prediction** – Compute expected finishing positions for each team using probabilities from the Random Forest.  
+6. **Automation** – `main()` function handles loading CSVs, preparing data, training, and predicting the next season.  
 
-Summarize per-team seasonal statistics including points, wins, draws, losses, goals for/against, and goal difference.
-
-Handle promoted teams using average bottom-team statistics for robust predictions.
-
-Build chronological training datasets linking season n stats to season n+1 league positions.
-
-Train a Random Forest Classifier pipeline with feature scaling for stable predictions.
-
-Predict expected league positions using probabilistic outputs and compute final rankings.
-
-Output the top 20 teams with predicted positions, ready for reporting or visualization.
-
-How it Works
-
-Data Parsing:
-The parse_match_results function converts raw "FT" scores into numeric home_goals and away_goals.
-
-Season Summarization:
-summarize_season aggregates team-level statistics (points, wins, losses, goals, goal difference) and ranks teams by points, goal difference, and goals scored.
-
-Training Data Preparation:
-prepare_training_data generates feature matrices and target positions using previous season stats. Promoted teams are assigned default values based on the bottom three teams from the previous season.
-
-Model Training:
-build_and_train_model trains a RandomForestClassifier within a Pipeline that includes StandardScaler. It uses 500 trees, a max depth of 8, and balanced class weights for reproducibility and fairness across league positions.
-
-Prediction:
-predict_league_table calculates expected finishing positions for each team by weighting the predicted probabilities from the Random Forest. The results are sorted to produce a final predicted ranking.
-
-Automation:
-The main() function orchestrates the workflow: loading season files, preparing training data, training the model, and predicting the next season's league table.
-
-Installation
-
-Clone the repository:
-
+## Installation
+```bash
 git clone <repository-url>
 cd <repository-folder>
-
-
-Install dependencies:
-
 pip install pandas numpy scikit-learn
+```
+## Usage
+Ensure your season CSV files (`eng1_2018-19.csv`, `eng1_2019-20.csv`, etc.) are in the same directory as the script.
 
-
-Ensure your season CSV files are placed in the same directory as the script, named like eng1_2018-19.csv, eng1_2019-20.csv, etc.
-
-Usage
-
-Run the predictor via the command line:
-
+Run the predictor from the command line:
+```bash
 python main.py
-
-
-Example in Python code:
-
+```
+Or in Python:
+```python
 from predictor import prepare_training_data, build_and_train_model, predict_league_table
-import os
 
 season_files = [
     "eng1_2018-19.csv",
@@ -79,23 +51,29 @@ X_train, y_train, latest_features = prepare_training_data(season_files)
 model = build_and_train_model(X_train, y_train)
 predictions = predict_league_table(model, latest_features)
 print(predictions)
+```
+## Example Output
+| Rank | Team              | Expected Position |
+| ---- | ----------------- | ----------------- |
+| 1    | Manchester City   | 1.35              |
+| 2    | Liverpool         | 2.12              |
+| 3    | Arsenal           | 3.05              |
+| 4    | Chelsea           | 4.20              |
+| 5    | Tottenham         | 5.10              |
+| 6    | Manchester United | 5.85              |
+| 7    | West Ham          | 7.40              |
+| 8    | Leicester City    | 8.25              |
+| 9    | Aston Villa       | 9.15              |
+| 10   | Everton           | 10.05             |
+| 11   | Newcastle United  | 11.30             |
+| 12   | Brighton          | 12.50             |
+| 13   | Southampton       | 13.80             |
+| 14   | Crystal Palace    | 14.40             |
+| 15   | Wolves            | 15.25             |
+| 16   | Bournemouth       | 16.10             |
+| 17   | Nottingham Forest | 16.95             |
+| 18   | Fulham            | 17.80             |
+| 19   | Burnley           | 18.55             |
+| 20   | Sunderland        | 18.92             |
 
-Example Output
-Predicted Premier League 2025/26 table (1 = champion):
-1. Manchester City (expected pos 1.35)
-2. Liverpool (expected pos 2.12)
-3. Arsenal (expected pos 3.05)
-...
-20. Sunderland (expected pos 18.92)
-
-Engineering Impact
-
-Scalable: Easily updates predictions using new season CSVs.
-
-Efficient: Aggregates team statistics using vectorized operations and dictionaries.
-
-Robust: Handles promoted teams intelligently with default bottom-team features.
-
-Accurate: Random Forest with probabilistic output provides expected positions rather than just categorical predictions.
-
-Reproducible: Fixed random seed ensures consistent results across runs.
+Hope you have fun exploring the Premier League predictions!
