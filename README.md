@@ -24,7 +24,7 @@ Uses past season statistics and machine learning to generate expected league pos
 ## Installation
 ```bash
 git clone https://github.com/Abhinav-Dave/PremierLeague-Standings-Predictor.git
-cd "pl-standings-predictor"
+cd pl-standings-predictor
 pip install pandas numpy scikit-learn
 ```
 ## Usage
